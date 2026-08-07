@@ -89,7 +89,7 @@ PluginComponent {
 
             Image {
                 id: icon
-                source: "ollama.svg"
+                source: "https://ollama.com/public/ollama.png"
                 width: Theme.iconSize
                 height: Theme.iconSize
                 fillMode: Image.PreserveAspectFit
@@ -126,7 +126,7 @@ PluginComponent {
 
             Image {
                 id: vicon
-                source: "ollama.svg"
+                source: "https://ollama.com/public/ollama.png"
                 width: Theme.iconSize
                 height: Theme.iconSize
                 fillMode: Image.PreserveAspectFit
