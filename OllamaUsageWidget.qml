@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -20,7 +21,14 @@ PluginComponent {
 
     property real sessionPct: 0
     property real weeklyPct: 0
-    property string status: "" // error/status line
+    property string status: ""
+    property var sessionModels: []
+    property var weeklyModels: []
+    property string periodStart: ""
+    property string periodEnd: ""
+    property string periodType: ""
+    property real periodElapsedPct: 0
+    property string timeUntilReset: ""
 
     // Poll the usage API every updateInterval seconds.
     Timer {
@@ -57,14 +65,35 @@ PluginComponent {
                         if (obj.limits) {
                             root.sessionPct = obj.limits.session.usage * 100
                             root.weeklyPct = obj.limits.weekly.usage * 100
+                            root.sessionModels = obj.limits.session.models || []
+                            root.weeklyModels = obj.limits.weekly.models || []
                             root.status = ""
+                        }
+                        if (obj.activity && obj.activity.period) {
+                            root.periodType = obj.activity.period.type || ""
+                            root.periodStart = obj.activity.period.starting_at || ""
+                            root.periodEnd = obj.activity.period.ending_at || ""
+                            var start = Date.parse(root.periodStart)
+                            var end = Date.parse(root.periodEnd)
+                            var now = Date.now()
+                            if (start && end && now > start) {
+                                root.periodElapsedPct = Math.min(100, ((now - start) / (end - start)) * 100)
+                                var remaining = end - now
+                                if (remaining > 0) {
+                                    var days = Math.floor(remaining / 86400000)
+                                    var hours = Math.floor((remaining % 86400000) / 3600000)
+                                    root.timeUntilReset = days + "d " + hours + "h"
+                                } else {
+                                    root.timeUntilReset = "now"
+                                }
+                            }
                         }
                     } catch (e) {
                         root.status = "bad json"
                     }
                 }
                 root.buffer = ""
-                root.status = root.status  // touch reactive status
+                root.status = root.status
                 destroy()
             }
         }
@@ -72,22 +101,13 @@ PluginComponent {
 
     property string buffer: ""
 
-    readonly property real minTooltipY: {
-        if (!parentScreen || !isVertical) return 0;
-        if (parentScreen.y > 0) return barThickness + barSpacing;
-        return 0;
-    }
-
     function showTooltip(text, globalPos) {
         tooltipLoader.active = true;
         if (tooltipLoader.item) {
             const currentScreen = parentScreen || Screen;
-            const adjustedY = globalPos.y + minTooltipY;
-            const tooltipX = axis?.edge === "left"
-                ? (barThickness + barSpacing + Theme.spacingXS)
-                : (currentScreen.width - barThickness - barSpacing - Theme.spacingXS);
-            const isLeft = axis?.edge === "left";
-            tooltipLoader.item.show(text, tooltipX, adjustedY, currentScreen, isLeft, !isLeft);
+            const tooltipX = globalPos.x + 10;
+            const tooltipY = globalPos.y + barThickness;
+            tooltipLoader.item.show(text, tooltipX, tooltipY, currentScreen);
         }
     }
 
@@ -96,10 +116,99 @@ PluginComponent {
         tooltipLoader.active = false;
     }
 
+    function buildTooltipText() {
+        var lines = [];
+        lines.push("Session: " + root.sessionPct.toFixed(1) + "%");
+        for (var i = 0; i < root.sessionModels.length; i++) {
+            var m = root.sessionModels[i];
+            lines.push("  " + m.name + " (" + m.request_count + " reqs)");
+        }
+        lines.push("Weekly: " + root.weeklyPct.toFixed(1) + "%");
+        for (var j = 0; j < root.weeklyModels.length; j++) {
+            var wm = root.weeklyModels[j];
+            lines.push("  " + wm.name + " (" + wm.request_count + " reqs)");
+        }
+        if (root.periodElapsedPct > 0) {
+            lines.push(root.periodElapsedPct.toFixed(0) + "% of period elapsed");
+        }
+        if (root.timeUntilReset) {
+            lines.push("Resets in " + root.timeUntilReset);
+        }
+        return lines.join("\n");
+    }
+
+    Component {
+        id: multiLineTooltip
+        PanelWindow {
+            id: tip
+            WlrLayershell.namespace: "dms:tooltip"
+            property string text: ""
+            property real targetX: 0
+            property real targetY: 0
+            property var targetScreen: null
+
+            function show(t, x, y, screen) {
+                text = t;
+                targetScreen = screen ?? null;
+                targetX = x;
+                targetY = y;
+                visible = true;
+            }
+
+            function hide() { visible = false; }
+
+            screen: targetScreen
+            implicitWidth: Math.min(400, Math.max(160, textContent.implicitWidth + Theme.spacingM * 2))
+            implicitHeight: textContent.implicitHeight + Theme.spacingS * 2
+            color: "transparent"
+            visible: false
+            WlrLayershell.layer: WlrLayershell.Overlay
+            WlrLayershell.exclusiveZone: -1
+
+            anchors { top: true; left: true }
+
+            margins {
+                left: {
+                    const sw = targetScreen?.width ?? Screen.width;
+                    return Math.round(Math.max(Theme.spacingS, Math.min(sw - implicitWidth - Theme.spacingS, targetX)));
+                }
+                top: {
+                    const sh = targetScreen?.height ?? Screen.height;
+                    return Math.round(Math.max(Theme.spacingS, Math.min(sh - implicitHeight - Theme.spacingS, targetY)));
+                }
+            }
+
+            WindowBlur {
+                targetWindow: tip
+                blurX: 0; blurY: 0
+                blurWidth: tip.visible ? tip.width : 0
+                blurHeight: tip.visible ? tip.height : 0
+                blurRadius: Theme.cornerRadius
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
+                radius: Theme.cornerRadius
+                border.width: BlurService.borderWidth
+                border.color: BlurService.borderColor
+
+                StyledText {
+                    id: textContent
+                    anchors.centerIn: parent
+                    text: tip.text
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceText
+                    width: Math.min(implicitWidth, 400 - Theme.spacingM * 2)
+                }
+            }
+        }
+    }
+
     Loader {
         id: tooltipLoader
         active: false
-        sourceComponent: DankTooltip {}
+        sourceComponent: multiLineTooltip
     }
 
     function refresh() {
@@ -160,8 +269,7 @@ PluginComponent {
                 acceptedButtons: Qt.NoButton
                 onEntered: {
                     const globalPos = mapToItem(null, width / 2, height / 2);
-                    const tooltipText = "Session: " + root.sessionPct.toFixed(1) + "%  Weekly: " + root.weeklyPct.toFixed(1) + "%";
-                    root.showTooltip(tooltipText, globalPos);
+                    root.showTooltip(root.buildTooltipText(), globalPos);
                 }
                 onExited: root.hideTooltip()
             }
@@ -207,8 +315,7 @@ PluginComponent {
                 acceptedButtons: Qt.NoButton
                 onEntered: {
                     const globalPos = mapToItem(null, width / 2, height / 2);
-                    const tooltipText = "Session: " + root.sessionPct.toFixed(1) + "%  Weekly: " + root.weeklyPct.toFixed(1) + "%";
-                    root.showTooltip(tooltipText, globalPos);
+                    root.showTooltip(root.buildTooltipText(), globalPos);
                 }
                 onExited: root.hideTooltip()
             }
