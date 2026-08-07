@@ -101,7 +101,6 @@ PluginComponent {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.primary
                 anchors.verticalCenter: parent.verticalCenter
-                ToolTip.text: "Session usage"
             }
 
             StyledText {
@@ -109,7 +108,6 @@ PluginComponent {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.surfaceText
                 anchors.verticalCenter: parent.verticalCenter
-                ToolTip.text: "Weekly usage (last 4 weeks)"
             }
 
             StyledText {
@@ -118,7 +116,6 @@ PluginComponent {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.error
                 anchors.verticalCenter: parent.verticalCenter
-                ToolTip.text: root.status
             }
         }
     }
@@ -141,7 +138,6 @@ PluginComponent {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.primary
                 anchors.horizontalCenter: parent.horizontalCenter
-                ToolTip.text: "Session usage"
             }
 
             StyledText {
@@ -149,7 +145,6 @@ PluginComponent {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.surfaceText
                 anchors.horizontalCenter: parent.horizontalCenter
-                ToolTip.text: "Weekly usage (last 4 weeks)"
             }
         }
     }
