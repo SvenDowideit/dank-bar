@@ -72,6 +72,36 @@ PluginComponent {
 
     property string buffer: ""
 
+    readonly property real minTooltipY: {
+        if (!parentScreen || !isVertical) return 0;
+        if (parentScreen.y > 0) return barThickness + barSpacing;
+        return 0;
+    }
+
+    function showTooltip(text, globalPos) {
+        tooltipLoader.active = true;
+        if (tooltipLoader.item) {
+            const currentScreen = parentScreen || Screen;
+            const adjustedY = globalPos.y + minTooltipY;
+            const tooltipX = axis?.edge === "left"
+                ? (barThickness + barSpacing + Theme.spacingXS)
+                : (currentScreen.width - barThickness - barSpacing - Theme.spacingXS);
+            const isLeft = axis?.edge === "left";
+            tooltipLoader.item.show(text, tooltipX, adjustedY, currentScreen, isLeft, !isLeft);
+        }
+    }
+
+    function hideTooltip() {
+        if (tooltipLoader.item) tooltipLoader.item.hide();
+        tooltipLoader.active = false;
+    }
+
+    Loader {
+        id: tooltipLoader
+        active: false
+        sourceComponent: DankTooltip {}
+    }
+
     function refresh() {
         if (root.apiKey === "") {
             root.status = "set OLLAMA_API_KEY"
@@ -84,67 +114,103 @@ PluginComponent {
     // --- DankBar rendering -------------------------------------------------
 
     horizontalBarPill: Component {
-        Row {
-            spacing: Theme.spacingS
+        Item {
+            implicitWidth: row.implicitWidth
+            implicitHeight: row.implicitHeight
 
-            Image {
-                id: icon
-                source: "https://ollama.com/public/ollama.png"
-                width: Theme.iconSize
-                height: Theme.iconSize
-                fillMode: Image.PreserveAspectFit
-                anchors.verticalCenter: parent.verticalCenter
+            Row {
+                id: row
+                spacing: Theme.spacingS
+
+                Image {
+                    id: icon
+                    source: "https://ollama.com/public/ollama.png"
+                    width: Theme.iconSize
+                    height: Theme.iconSize
+                    fillMode: Image.PreserveAspectFit
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    text: root.sessionPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    text: root.weeklyPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceText
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.status !== ""
+                    text: "⚠"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.error
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
-            StyledText {
-                text: root.sessionPct.toFixed(1) + "%"
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.primary
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            StyledText {
-                text: root.weeklyPct.toFixed(1) + "%"
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.surfaceText
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            StyledText {
-                visible: root.status !== ""
-                text: "⚠"
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.error
-                anchors.verticalCenter: parent.verticalCenter
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                onEntered: {
+                    const globalPos = mapToItem(null, width / 2, height / 2);
+                    const tooltipText = "Session: " + root.sessionPct.toFixed(1) + "%  Weekly: " + root.weeklyPct.toFixed(1) + "%";
+                    root.showTooltip(tooltipText, globalPos);
+                }
+                onExited: root.hideTooltip()
             }
         }
     }
 
     verticalBarPill: Component {
-        Column {
-            spacing: Theme.spacingXS
+        Item {
+            implicitWidth: col.implicitWidth
+            implicitHeight: col.implicitHeight
 
-            Image {
-                id: vicon
-                source: "https://ollama.com/public/ollama.png"
-                width: Theme.iconSize
-                height: Theme.iconSize
-                fillMode: Image.PreserveAspectFit
-                anchors.horizontalCenter: parent.horizontalCenter
+            Column {
+                id: col
+                spacing: Theme.spacingXS
+
+                Image {
+                    id: vicon
+                    source: "https://ollama.com/public/ollama.png"
+                    width: Theme.iconSize
+                    height: Theme.iconSize
+                    fillMode: Image.PreserveAspectFit
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    text: root.sessionPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primary
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    text: root.weeklyPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
             }
 
-            StyledText {
-                text: root.sessionPct.toFixed(1) + "%"
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.primary
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            StyledText {
-                text: root.weeklyPct.toFixed(1) + "%"
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.surfaceText
-                anchors.horizontalCenter: parent.horizontalCenter
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                onEntered: {
+                    const globalPos = mapToItem(null, width / 2, height / 2);
+                    const tooltipText = "Session: " + root.sessionPct.toFixed(1) + "%  Weekly: " + root.weeklyPct.toFixed(1) + "%";
+                    root.showTooltip(tooltipText, globalPos);
+                }
+                onExited: root.hideTooltip()
             }
         }
     }
