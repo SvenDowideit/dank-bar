@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="12" cy="12" r="11" fill="#000000" opacity="0"/>
+  <g transform="translate(12,14) scale(1)">
+    <!-- llama head silhouette -->
+    <path fill="#000000"
+      d="
+        M -6.2 -1.0
+        L -7.6 -6.0
+        Q -6.8 -8.0 -5.4 -6.8
+        L -3.9 -4.6
+        Q -2.0 -5.6 0.0 -5.6
+        Q 2.0 -5.6 3.9 -4.6
+        L 5.4 -6.8
+        Q 6.8 -8.0 7.6 -6.0
+        L 6.2 -1.0
+        Q 8.2 0.4 8.2 3.0
+        L 8.2 7.0
+        Q 8.2 8.6 5.6 8.6
+        L -5.6 8.6
+        Q -8.2 8.6 -8.2 7.0
+        L -8.2 3.0
+        Q -8.2 0.4 -6.2 -1.0
+        Z
+      "
+    />
+    <!-- eye -->
+    <circle cx="2.6" cy="-1.4" r="0.55" fill="#ffffff"/>
+    <circle cx="-2.6" cy="-1.4" r="0.55" fill="#ffffff"/>
+    <!-- mouth -->
+    <rect x="-1.1" y="3.0" width="2.2" height="0.9" rx="0.45" fill="#ffffff"/>
+  </g>
+</svg>

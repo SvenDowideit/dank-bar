@@ -1,0 +1,13 @@
+{
+  "id": "dankOllamaUsage",
+  "name": "Dank Ollama Usage",
+  "description": "Dank bar widget showing Ollama session & weekly usage percentages",
+  "version": "1.0.0",
+  "author": "dank",
+  "icon": "widgets",
+  "type": "widget",
+  "capabilities": ["dankbar-widget"],
+  "component": "./OllamaUsageWidget.qml",
+  "settings": "./OllamaUsageSettings.qml",
+  "permissions": ["settings_read", "settings_write", "process", "network"]
+}
