@@ -242,6 +242,7 @@ PluginComponent {
                 }
 
                 StyledText {
+                    visible: root.apiKey !== ""
                     text: root.sessionPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -249,6 +250,7 @@ PluginComponent {
                 }
 
                 StyledText {
+                    visible: root.apiKey !== ""
                     text: root.weeklyPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
@@ -256,7 +258,15 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.status !== ""
+                    visible: root.apiKey === ""
+                    text: "set OLLAMA_API_KEY"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.status !== "" && root.apiKey !== ""
                     text: "⚠"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.error
@@ -297,6 +307,7 @@ PluginComponent {
                 }
 
                 StyledText {
+                    visible: root.apiKey !== ""
                     text: root.sessionPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -304,9 +315,18 @@ PluginComponent {
                 }
 
                 StyledText {
+                    visible: root.apiKey !== ""
                     text: root.weeklyPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey === ""
+                    text: "set API key"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
             }

@@ -254,7 +254,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.tierName !== ""
+                    visible: root.apiKey !== "" && root.username !== "" && root.tierName !== ""
                     text: root.tierName + " " + root.tierOrdinal + "/10"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -262,7 +262,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.streak > 0
+                    visible: root.apiKey !== "" && root.username !== "" && root.streak > 0
                     text: root.streak + "d streak"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
@@ -270,7 +270,15 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.status !== ""
+                    visible: root.apiKey === "" || root.username === ""
+                    text: "set API key & username"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.status !== "" && root.apiKey !== "" && root.username !== ""
                     text: "⚠"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.error
@@ -309,7 +317,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.tierName !== ""
+                    visible: root.apiKey !== "" && root.username !== "" && root.tierName !== ""
                     text: root.tierName
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -317,7 +325,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.tierOrdinal > 0
+                    visible: root.apiKey !== "" && root.username !== "" && root.tierOrdinal > 0
                     text: root.tierOrdinal + "/10"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
@@ -325,10 +333,18 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.streak > 0
+                    visible: root.apiKey !== "" && root.username !== "" && root.streak > 0
                     text: root.streak + "d"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey === "" || root.username === ""
+                    text: "set API key"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
             }
