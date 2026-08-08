@@ -39,6 +39,22 @@ PluginSettings {
         defaultValue: ""
     }
 
+    StringSetting {
+        settingKey: "repoDir"
+        label: "Swamp repo directory (optional)"
+        description: "Path to your Swamp repository. Leave empty to use SWAMP_REPO_DIR env var or CWD."
+        placeholder: "/home/user/src/swamp-project"
+        defaultValue: ""
+    }
+
+    StringSetting {
+        settingKey: "serverUrl"
+        label: "Swamp serve URL (optional)"
+        description: "Remote swamp serve instance (ws:// or http://). Leave empty for local repo."
+        placeholder: "http://127.0.0.1:7766"
+        defaultValue: ""
+    }
+
     SliderSetting {
         settingKey: "updateInterval"
         label: "Update interval (seconds)"

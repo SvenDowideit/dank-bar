@@ -2,6 +2,10 @@
 
 DankMaterialShell bar widgets.
 
+yes, these are quick "what would happen if" DeepSeek v4 flash built plugins that go with things i'm playing with
+
+![widgets](screenshot.png)
+
 ## Widgets
 
 ### [Dank Ollama Usage](OllamaUsageWidget/)
