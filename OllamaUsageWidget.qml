@@ -233,7 +233,8 @@ PluginComponent {
 
                 Image {
                     id: icon
-                    source: "https://ollama.com/public/ollama.png"
+                    //source: "https://ollama.com/public/ollama.png"
+                    source: "https://mintcdn.com/ollama-9269c548/XefrxzvUktkk84RL/images/logo-dark.png?fit=max&auto=format&n=XefrxzvUktkk84RL&q=85&s=c214b467f5623414c31d4e05c66110fb"
                     width: Theme.iconSize
                     height: Theme.iconSize
                     fillMode: Image.PreserveAspectFit
@@ -287,7 +288,8 @@ PluginComponent {
 
                 Image {
                     id: vicon
-                    source: "https://ollama.com/public/ollama.png"
+                    //source: "https://ollama.com/public/ollama.png"
+                    source: "https://mintcdn.com/ollama-9269c548/XefrxzvUktkk84RL/images/logo-dark.png?fit=max&auto=format&n=XefrxzvUktkk84RL&q=85&s=c214b467f5623414c31d4e05c66110fb"
                     width: Theme.iconSize
                     height: Theme.iconSize
                     fillMode: Image.PreserveAspectFit
