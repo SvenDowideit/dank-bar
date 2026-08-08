@@ -74,9 +74,9 @@ PluginComponent {
                             root.periodStart = obj.activity.period.starting_at || ""
                             root.periodEnd = obj.activity.period.ending_at || ""
                             var start = Date.parse(root.periodStart)
-                            var end = Date.parse(root.periodEnd)
                             var now = Date.now()
-                            if (start && end && now > start) {
+                            if (start && now > start) {
+                                var end = start + (4 * 7 * 24 * 60 * 60 * 1000)
                                 root.periodElapsedPct = Math.min(100, ((now - start) / (end - start)) * 100)
                                 var remaining = end - now
                                 if (remaining > 0) {
