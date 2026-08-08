@@ -1,0 +1,12 @@
+{
+  "id": "dankSwampClub",
+  "name": "Dank Swamp Club",
+  "description": "Dank bar widget showing your Swamp Club rank, tier, and streak",
+  "version": "1.0.0",
+  "author": "dank",
+  "icon": "widgets",
+  "type": "widget",
+  "component": "./SwampClubWidget.qml",
+  "settings": "./SwampClubSettings.qml",
+  "permissions": ["settings_read", "settings_write", "process", "network"]
+}
