@@ -56,3 +56,19 @@ Given a profile with tier "Murk Beast", ordinal 10, and a 6-day streak:
 `[SC] Murk Beast 10/10  6d streak`
 
 Hover for a tooltip with all-time rank, score, and streak details.
+
+## Development and reloading from the cli
+
+```
+sven@x1yoga:~/src/claude-test/dank-bar$ cp SwampClubWidget/* ~/.config/DankMaterialShell/plugins/SwampClubWidget/
+sven@x1yoga:~/src/claude-test/dank-bar$ dms plugins list
+
+Installed Plugins (2):
+
+  dankOllamaUsage (not in registry)
+
+  dankSwampClub (not in registry)
+
+sven@x1yoga:~/src/claude-test/dank-bar$ dms ipc call plugins reload dankSwampClub
+PLUGIN_RELOAD_SUCCESS: dankSwampClub
+```

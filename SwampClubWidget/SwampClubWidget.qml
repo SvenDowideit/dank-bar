@@ -258,9 +258,14 @@ PluginComponent {
         p.running = true
     }
 
-    function showDialog() {
+    function toggleDialog(globalPos) {
+        root.hideTooltip()
         if (dialogLoader.item) {
-            dialogLoader.item.show()
+            if (dialogLoader.item.visible) {
+                dialogLoader.item.hide()
+            } else {
+                dialogLoader.item.show(globalPos)
+            }
         }
     }
 
@@ -409,8 +414,14 @@ PluginComponent {
 
             property int dialogW: 420
             property int dialogH: 520
+            property real anchorX: 0
+            property real anchorY: 0
 
-            function show() {
+            function show(globalPos) {
+                if (globalPos) {
+                    anchorX = globalPos.x
+                    anchorY = globalPos.y
+                }
                 visible = true
             }
 
@@ -425,11 +436,11 @@ PluginComponent {
             margins {
                 left: {
                     const sw = screen?.width ?? Screen.width
-                    return Math.round((sw - dialogW) / 2)
+                    return Math.round(Math.max(Theme.spacingS, Math.min(sw - dialogW - Theme.spacingS, anchorX - dialogW / 2)))
                 }
                 top: {
                     const sh = screen?.height ?? Screen.height
-                    return Math.round((sh - dialogH) / 2)
+                    return Math.round(Math.max(Theme.spacingS, Math.min(sh - dialogH - Theme.spacingS, anchorY + barThickness + Theme.spacingS)))
                 }
             }
 
@@ -697,8 +708,12 @@ PluginComponent {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton
-                onClicked: root.showDialog()
+                onClicked: {
+                    const globalPos = mapToItem(null, width / 2, height / 2);
+                    root.toggleDialog(globalPos);
+                }
                 onEntered: {
+                    if (dialogLoader.item && dialogLoader.item.visible) return
                     const globalPos = mapToItem(null, width / 2, height / 2);
                     root.showTooltip(root.buildTooltipText(), globalPos);
                 }
@@ -761,8 +776,12 @@ PluginComponent {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton
-                onClicked: root.showDialog()
+                onClicked: {
+                    const globalPos = mapToItem(null, width / 2, height / 2);
+                    root.toggleDialog(globalPos);
+                }
                 onEntered: {
+                    if (dialogLoader.item && dialogLoader.item.visible) return
                     const globalPos = mapToItem(null, width / 2, height / 2);
                     root.showTooltip(root.buildTooltipText(), globalPos);
                 }
