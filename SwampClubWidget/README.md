@@ -6,10 +6,14 @@ and your **streak** (e.g. 6d streak). It polls two API endpoints:
 ```
 curl -H "Authorization: Bearer $SWAMP_API_KEY" https://swamp-club.com/api/v1/u/{username}/card
 curl -H "Authorization: Bearer $SWAMP_API_KEY" https://swamp-club.com/api/v1/leaderboard/locate?q={username}
+curl -H "Authorization: Bearer $SWAMP_API_KEY" https://swamp-club.com/api/v1/users/{username}
 ```
 
-The card endpoint provides `tierName`, `ordinal`, `tier`, and `score`. The locate
-endpoint provides `streak` and `alltimeRank` from the streaks and alltime boards.
+The card endpoint provides `tierName`, `ordinal`, `tier`, `score`, and `nameStyle`
+(`glowColor`, `glowPx`, `textClass`). The tier name is rendered in the API-supplied
+`glowColor` (e.g. `#fbbf24` amber for Murk Beast), falling back to the theme primary
+color when no `nameStyle` is present. The locate endpoint provides `streak` and
+`alltimeRank` from the streaks and alltime boards.
 
 ## Files
 - `plugin.json` — DMS widget manifest

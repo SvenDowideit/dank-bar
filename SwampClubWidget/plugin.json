@@ -2,7 +2,7 @@
   "id": "dankSwampClub",
   "name": "Dank Swamp Club",
   "description": "Dank bar widget showing your Swamp Club rank, tier, and streak",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "dank",
   "icon": "widgets",
   "type": "widget",

@@ -24,6 +24,15 @@ PluginComponent {
     property int score: 0
     property string status: ""
 
+    property string nameStyleTextColor: Theme.primary
+    property string nameStyleGlowColor: ""
+    property int nameStyleGlowPx: 0
+
+    function tierTextColor() {
+        if (root.nameStyleGlowColor !== "") return root.nameStyleGlowColor
+        return Theme.primary
+    }
+
     property var workflows: []
     property var workflowRuns: ({})
 
@@ -63,6 +72,15 @@ PluginComponent {
                         root.tierVisual = obj.tier || 0
                         root.score = obj.score || 0
                         root.status = ""
+                        if (obj.nameStyle) {
+                            root.nameStyleTextColor = obj.nameStyle.textClass || Theme.primary
+                            root.nameStyleGlowColor = obj.nameStyle.glowColor || ""
+                            root.nameStyleGlowPx = obj.nameStyle.glowPx || 0
+                        } else {
+                            root.nameStyleTextColor = Theme.primary
+                            root.nameStyleGlowColor = ""
+                            root.nameStyleGlowPx = 0
+                        }
                     } catch (e) {
                         root.status = "card bad json"
                     }
@@ -471,7 +489,7 @@ PluginComponent {
                         visible: root.tierName !== ""
                         text: root.tierName + " " + root.tierOrdinal + "/10  \u2022  #" + root.alltimeRank + " all-time  \u2022  " + root.score.toLocaleString() + " pts  \u2022  " + root.streak + "d streak"
                         font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.primary
+                        color: root.tierTextColor()
                         width: parent.width
                         wrapMode: Text.WordWrap
                     }
@@ -642,10 +660,11 @@ PluginComponent {
                 }
 
                 StyledText {
+                    id: hTierText
                     visible: root.apiKey !== "" && root.username !== "" && root.tierName !== ""
                     text: root.tierName + " " + root.tierOrdinal + "/10"
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.primary
+                    color: root.tierTextColor()
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
@@ -709,7 +728,7 @@ PluginComponent {
                     visible: root.apiKey !== "" && root.username !== "" && root.tierName !== ""
                     text: root.tierName
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.primary
+                    color: root.tierTextColor()
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
