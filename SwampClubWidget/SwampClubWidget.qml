@@ -292,7 +292,7 @@ PluginComponent {
         var lines = [];
         lines.push(root.tierName + " " + root.tierOrdinal + "/10");
         if (root.alltimeRank > 0) lines.push("All-time rank: #" + root.alltimeRank);
-        if (root.score > 0) lines.push("Score: " + root.score.toLocaleString());
+        if (root.score > 0) lines.push("Score: " + root.formatScore(root.score));
         if (root.streak > 0) lines.push("Streak: " + root.streak + " days");
         return lines.join("\n");
     }
@@ -311,6 +311,18 @@ PluginComponent {
         if (s === "running") return "\u25b6"
         if (s === "suspended") return "\u23f8"
         return "?"
+    }
+
+    // Human-readable score: commas for thousands, "X million" (thousands
+    // precision) at 1e6+. Avoids exponential notation like 1.044e+06.
+    function formatScore(n) {
+        if (!n || n <= 0) return "0"
+        if (n >= 1000000) {
+            var millions = n / 1000000
+            var trimmed = millions.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")
+            return trimmed + " million"
+        }
+        return Math.round(n).toLocaleString()
     }
 
     function formatDuration(ms) {
@@ -498,7 +510,7 @@ PluginComponent {
 
                     StyledText {
                         visible: root.tierName !== ""
-                        text: root.tierName + " " + root.tierOrdinal + "/10  \u2022  #" + root.alltimeRank + " all-time  \u2022  " + root.score.toLocaleString() + " pts  \u2022  " + root.streak + "d streak"
+                        text: root.tierName + " " + root.tierOrdinal + "/10  \u2022  #" + root.alltimeRank + " all-time  \u2022  " + root.formatScore(root.score) + " pts  \u2022  " + root.streak + "d streak"
                         font.pixelSize: Theme.fontSizeSmall
                         color: root.tierTextColor()
                         width: parent.width
