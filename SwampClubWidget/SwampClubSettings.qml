@@ -23,7 +23,7 @@ PluginSettings {
         wrapMode: Text.WordWrap
     }
 
-    StringSetting {
+    SecretSetting {
         settingKey: "SWAMP_API_KEY"
         label: "SWAMP_API_KEY"
         description: "Your Swamp Club API key (swamp_...). Create one at swamp-club.com Settings > Access Tokens."

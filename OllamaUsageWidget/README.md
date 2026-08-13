@@ -89,6 +89,23 @@ loads plugins fine.
 Given `{"limits":{"session":{"usage":0},"weekly":{"usage":0.079}}}`:
 `🦙 0.0%  7.9%`
 
+## Session reset estimate
+The 5-hour **session** quota is a rolling window, and the `/api/usage` response
+does **not** expose a session period/reset timestamp (`limits.session` carries
+only `usage` and `models`). The widget therefore estimates the time until the
+session resets:
+
+- It records when it first observed the session active, capping the estimate at
+  **5 hours** from that point.
+- Once requests stop arriving, it measures the request-count expiry rate between
+  polls and linearly extrapolates when the window drains to zero, refining the
+  countdown.
+- A full reset is detected when usage drops to ~0, which clears the timer.
+
+The estimate appears as `~Xh Ym` (e.g. `~4h 12m`) in the bar pill and as
+`Session resets in ~Xh Ym` in the tooltip. Lower `updateInterval` (min 30s)
+improves the estimate's accuracy — at the default 300s it updates every 5 minutes.
+
 # development docs:
 
 https://danklinux.com/docs/dankmaterialshell/plugin-development
