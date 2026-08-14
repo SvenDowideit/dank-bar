@@ -1,5 +1,9 @@
 # Dank Ollama Usage — DankMaterialShell bar widget
 
+## Screenshot
+
+![Ollama Usage widget in the DankBar](screenshot.png)
+
 A single-config DankBar widget that shows the Ollama icon, then your
 **session** and **weekly** usage percentages. It polls:
 
@@ -81,13 +85,6 @@ up `-r--r--r--`, owned by the user). That's unrelated to your plugin and blocks
 plugin *listing* via IPC — a full `systemctl --user restart dms.service` still
 loads plugins fine.
 
-## Screenshot
-
-![Ollama Usage widget in the DankBar](screenshot.png)
-
-## Sample output (from the API)
-Given `{"limits":{"session":{"usage":0},"weekly":{"usage":0.079}}}`:
-`🦙 0.0%  7.9%`
 
 ## Session reset estimate
 The 5-hour **session** quota is a rolling window, and the `/api/usage` response
