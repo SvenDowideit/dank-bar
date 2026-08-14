@@ -24,17 +24,8 @@ PluginComponent {
     property string status: ""
     property var sessionModels: []
     property var weeklyModels: []
-    property string periodStart: ""
-    property string periodEnd: ""
-    property string periodType: ""
-    property real periodElapsedPct: 0
     property string timeUntilReset: ""
     property string sessionTimeUntilReset: ""
-    property real lastSessionPct: -1
-    property int lastSessionReqs: -1
-    property double lastPollMs: 0
-    property double sessionObservedAtMs: 0
-    property double estResetMs: 0
 
     // Poll the usage API every updateInterval seconds.
     Timer {
@@ -74,29 +65,8 @@ PluginComponent {
                             root.sessionModels = obj.limits.session.models || []
                             root.weeklyModels = obj.limits.weekly.models || []
                             root.status = ""
-                            var reqs = 0
-                            for (var m = 0; m < root.sessionModels.length; m++)
-                                reqs += root.sessionModels[m].request_count || 0
-                            root.updateSessionEstimate(Date.now(), root.sessionPct, reqs)
-                        }
-                        if (obj.activity && obj.activity.period) {
-                            root.periodType = obj.activity.period.type || ""
-                            root.periodStart = obj.activity.period.starting_at || ""
-                            root.periodEnd = obj.activity.period.ending_at || ""
-                            var start = Date.parse(root.periodStart)
-                            var now = Date.now()
-                            if (start && now > start) {
-                                var end = start + (4 * 7 * 24 * 60 * 60 * 1000)
-                                root.periodElapsedPct = Math.min(100, ((now - start) / (end - start)) * 100)
-                                var remaining = end - now
-                                if (remaining > 0) {
-                                    var days = Math.floor(remaining / 86400000)
-                                    var hours = Math.floor((remaining % 86400000) / 3600000)
-                                    root.timeUntilReset = days + "d " + hours + "h"
-                                } else {
-                                    root.timeUntilReset = "now"
-                                }
-                            }
+                            root.sessionTimeUntilReset = root.formatReset(root.secondsUntilSessionReset())
+                            root.timeUntilReset = root.formatReset(root.secondsUntilWeeklyReset())
                         }
                     } catch (e) {
                         root.status = "bad json"
@@ -138,15 +108,8 @@ PluginComponent {
             var wm = root.weeklyModels[j];
             lines.push("  " + wm.name + " (" + wm.request_count + " reqs)");
         }
-        if (root.periodElapsedPct > 0) {
-            lines.push(root.periodElapsedPct.toFixed(0) + "% of period elapsed");
-        }
-        if (root.timeUntilReset) {
-            lines.push("Resets in " + root.timeUntilReset);
-        }
-        if (root.sessionTimeUntilReset) {
-            lines.push("Session resets in ~" + root.sessionTimeUntilReset);
-        }
+        lines.push("Session resets in " + root.formatReset(root.secondsUntilSessionReset()));
+        lines.push("Weekly resets in " + root.formatReset(root.secondsUntilWeeklyReset()));
         return lines.join("\n");
     }
 
@@ -233,42 +196,25 @@ PluginComponent {
         p.running = true
     }
 
-    // The 5h session limit is a rolling window with no API-exposed reset
-    // timestamp. Estimate it: once requests stop arriving, their expiry rate
-    // (observed between polls) tells us how long until the window drains.
-    function updateSessionEstimate(now, pct, reqs) {
-        var FIVE_H = 5 * 3600 * 1000
-        if (pct <= 0.05 || reqs <= 0) {
-            root.estResetMs = now
-            root.sessionObservedAtMs = now
-            root.lastSessionReqs = 0
-            root.lastSessionPct = 0
-            root.lastPollMs = now
-            root.sessionTimeUntilReset = "reset"
-            return
-        }
-        if (root.lastSessionReqs < 0) {
-            root.sessionObservedAtMs = now
-            root.estResetMs = now + FIVE_H
-        } else {
-            var deltaT = now - root.lastPollMs
-            if (deltaT > 0 && reqs < root.lastSessionReqs) {
-                var reqPerMs = (root.lastSessionReqs - reqs) / deltaT
-                if (reqPerMs > 0)
-                    root.estResetMs = now + Math.min(reqs / reqPerMs, FIVE_H)
-            }
-        }
-        root.estResetMs = Math.max(now, Math.min(root.estResetMs, root.sessionObservedAtMs + FIVE_H))
-        root.lastSessionReqs = reqs
-        root.lastSessionPct = pct
-        root.lastPollMs = now
-        root.sessionTimeUntilReset = root.formatCountdown(Math.max(0, root.estResetMs - now))
+    // Session resets happen at the same wall-clock time for everyone: every
+    // 5h (18000s), aligned to the epoch. Weekly resets every 7d (604800s),
+    // anchored 4 days into the week cycle. So both can be computed exactly.
+    function secondsUntilSessionReset() {
+        var epoch = Math.floor(Date.now() / 1000)
+        return 18000 - (epoch % 18000)
     }
 
-    function formatCountdown(ms) {
-        var totalMin = Math.max(0, Math.ceil(ms / 60000))
-        var h = Math.floor(totalMin / 60)
-        var m = totalMin % 60
+    function secondsUntilWeeklyReset() {
+        var epoch = Math.floor(Date.now() / 1000)
+        return 604800 - (((epoch - 4 * 86400) % 604800 + 604800) % 604800)
+    }
+
+    function formatReset(sec) {
+        var s = Math.max(0, Math.ceil(sec))
+        var d = Math.floor(s / 86400)
+        var h = Math.floor((s % 86400) / 3600)
+        var m = Math.floor((s % 3600) / 60)
+        if (d >= 1) return d + "d " + h + "h " + m + "m"
         if (h >= 1) return h + "h " + m + "m"
         if (m >= 1) return m + "m"
         return "now"
@@ -314,7 +260,7 @@ PluginComponent {
                 StyledText {
                     visible: root.apiKey !== "" && root.sessionTimeUntilReset !== "" &&
                              root.sessionTimeUntilReset !== "reset" && root.sessionTimeUntilReset !== "now"
-                    text: "~" + root.sessionTimeUntilReset
+                    text: root.sessionTimeUntilReset
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                     anchors.verticalCenter: parent.verticalCenter
@@ -388,7 +334,7 @@ PluginComponent {
                 StyledText {
                     visible: root.apiKey !== "" && root.sessionTimeUntilReset !== "" &&
                              root.sessionTimeUntilReset !== "reset" && root.sessionTimeUntilReset !== "now"
-                    text: "~" + root.sessionTimeUntilReset
+                    text: root.sessionTimeUntilReset
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                     anchors.horizontalCenter: parent.horizontalCenter
