@@ -22,6 +22,9 @@ PluginComponent {
     property int streak: 0
     property int alltimeRank: 0
     property int score: 0
+    property int xp: 0
+    property int xpIntoCurrent: 0
+    property int xpForNext: 0
     property string status: ""
 
     property string nameStyleTextColor: Theme.primary
@@ -86,6 +89,43 @@ PluginComponent {
                     }
                 }
                 root.cardBuffer = ""
+                destroy()
+            }
+        }
+    }
+
+    Component {
+        id: fetchXp
+        Process {
+            property string apiKey: ""
+            property string username: ""
+            command: ["curl", "-s", "-H", "Authorization: Bearer " + apiKey,
+                      "https://swamp-club.com/api/v1/users/" + username]
+            stdout: SplitParser {
+                onRead: line => root.xpBuffer += line
+            }
+            stderr: SplitParser {
+                onRead: line => {
+                    if (line.trim() !== "")
+                        root.status = "xp err: " + line.trim()
+                }
+            }
+            onExited: exitCode => {
+                if (exitCode !== 0) {
+                    root.status = "xp failed (exit " + exitCode + ")"
+                } else {
+                    try {
+                        var obj = JSON.parse(root.xpBuffer)
+                        if (obj.genesisPass) {
+                            root.xp = obj.genesisPass.passXp || 0
+                            root.xpIntoCurrent = obj.genesisPass.xpIntoCurrent || 0
+                            root.xpForNext = obj.genesisPass.xpForNext || 0
+                        }
+                    } catch (e) {
+                        root.status = "xp bad json"
+                    }
+                }
+                root.xpBuffer = ""
                 destroy()
             }
         }
@@ -240,6 +280,7 @@ PluginComponent {
 
     property string cardBuffer: ""
     property string locateBuffer: ""
+    property string xpBuffer: ""
     property string workflowsBuffer: ""
     property string runBuffer: ""
 
@@ -293,7 +334,9 @@ PluginComponent {
         lines.push(root.tierName + " " + root.tierOrdinal + "/10");
         if (root.alltimeRank > 0) lines.push("All-time rank: #" + root.alltimeRank);
         if (root.score > 0) lines.push("Score: " + root.formatScore(root.score));
-        if (root.streak > 0) lines.push("Streak: " + root.streak + " days");
+        if (root.xp > 0) {
+            lines.push("XP: " + root.xp.toLocaleString() + " (" + root.xpIntoCurrent + " of " + root.xpForNext + " for next level)");
+        }        if (root.streak > 0) lines.push("Streak: " + root.streak + " days");
         return lines.join("\n");
     }
 
@@ -661,6 +704,8 @@ PluginComponent {
         c.running = true
         var l = fetchLocate.createObject(root, { apiKey: root.apiKey, username: root.username })
         l.running = true
+        var x = fetchXp.createObject(root, { apiKey: root.apiKey, username: root.username })
+        x.running = true
         var w = fetchWorkflows.createObject(root, {})
         w.running = true
     }
