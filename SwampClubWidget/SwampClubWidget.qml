@@ -560,6 +560,15 @@ PluginComponent {
                         wrapMode: Text.WordWrap
                     }
 
+                    StyledText {
+                        visible: root.xp > 0
+                        text: "XP: " + root.xp.toLocaleString() + "  \u2022  " + root.xpIntoCurrent + " of " + root.xpForNext + " for next level"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceText
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                    }
+
                     Rectangle { height: 1; width: parent.width; color: Theme.withAlpha(Theme.surfaceVariantText, 0.2) }
 
                     StyledText {
