@@ -5,14 +5,35 @@
 ![Ollama Usage widget in the DankBar](screenshot.png)
 
 A single-config DankBar widget that shows the Ollama icon, then your
-**session** and **weekly** usage percentages. It polls:
+**session** and **weekly** usage percentages (legacy Pro/Max plans) or your
+**monthly** usage percentage (new monthly Pro/Max plans). It polls:
 
 ```
 curl -H "Authorization: $OLLAMA_API_KEY" https://ollama.com/api/usage
 ```
 
-and renders `limits.session.usage` and `limits.weekly.usage` as percentages
-(usage values are fractions of 1.0, so `0.079` → `7.9%`).
+and renders `limits.session.usage` + `limits.weekly.usage` (legacy plans) or
+`limits.monthly.usage` (new monthly plans) as percentages (usage values are
+fractions of 1.0, so `0.079` → `7.9%`).
+
+## Plan support
+
+Ollama's `/api/usage` response shape depends on which plan the account is on:
+
+- **Legacy Pro/Max** (subscribed before the Aug 2026 pricing change) return
+  `limits.session` (5h window) and `limits.weekly` (7d window). The widget
+  shows both percentages and their reset countdowns, exactly as before.
+- **New monthly Pro/Max** return a single `limits.monthly` bucket (a monthly
+  credit pool) plus an `activity` object with `cost` and a `period` of type
+  `last_4_weeks`. The widget shows the monthly percentage and the per-model
+  request counts, plus the 4-week activity cost in the tooltip. The monthly
+  billing reset date is **not** exposed by the API (the `activity.period` is a
+  rolling cost window ending now, not the billing period), so the reset
+  countdown is derived from `monthlyResetDay`, falling back to a guess from
+  `activity.period.starting_at` (see below).
+
+The widget auto-detects the shape from the response, so the same build keeps
+working for both old and new plans — no config change needed when you switch.
 
 ## Files
 - `plugin.json` — DMS widget manifest
@@ -24,6 +45,13 @@ and renders `limits.session.usage` and `limits.weekly.usage` as percentages
 `OLLAMA_API_KEY` — the Authorization header value sent to the API. Set it in
 the plugin's settings panel (DMS Settings → Plugins → Dank Ollama Usage).
 Optional `updateInterval` (seconds, default 300).
+
+Optional `monthlyResetDay` (1–31, default 0 = auto) — the day of month your
+monthly usage resets, shown on ollama.com → Settings → Billing. When set, the
+widget shows a "resets in Xd Xh" countdown for monthly plans. When left at 0,
+the widget guesses the day from `activity.period.starting_at` (a heuristic —
+that field is a rolling "last_4_weeks" window, so set the day explicitly if the
+countdown looks wrong).
 
 ## Icon
 The bar icon loads a remote PNG from `https://ollama.com/public/ollama.png` in

@@ -40,4 +40,14 @@ PluginSettings {
         maximum: 3600
         unit: "sec"
     }
+
+    SliderSetting {
+        settingKey: "monthlyResetDay"
+        label: "Monthly reset day (optional)"
+        description: "Day of month your monthly usage resets (see ollama.com Settings > Billing). 0 = guess from the API's activity period."
+        defaultValue: 0
+        minimum: 0
+        maximum: 31
+        unit: "day"
+    }
 }

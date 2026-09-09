@@ -9,9 +9,15 @@ import qs.Modules.Plugins
 
 // Dank Ollama Usage bar widget.
 // Single config value: OLLAMA_API_KEY (the Authorization header sent to the API).
-// Pulls limits.session.usage and limits.weekly.usage from
+// Pulls usage from:
 //   curl -H "Authorization: $OLLAMA_API_KEY" https://ollama.com/api/usage
-// and renders them as percentages (usage values are fractions of 1.0).
+// and renders it as a percentage (usage values are fractions of 1.0).
+//
+// Supports both plan shapes:
+//   - Legacy Pro/Max: limits.session (5h) + limits.weekly (7d)
+//   - New monthly Pro/Max: limits.monthly (single credit pool). The monthly
+//     reset date is not exposed by the API (activity.period is a rolling
+//     "last_4_weeks" cost window), so no reset countdown is shown for it.
 
 PluginComponent {
     id: root
@@ -26,6 +32,17 @@ PluginComponent {
     property var weeklyModels: []
     property string timeUntilReset: ""
     property string sessionTimeUntilReset: ""
+
+    // Plan detection: "legacy" (session + weekly buckets) or "monthly"
+    // (a single monthly bucket). The new monthly Pro/Max plans replace the
+    // old 5h session + 7d weekly windows with a monthly credit pool.
+    property string planType: "legacy"
+    property real monthlyPct: 0
+    property var monthlyModels: []
+    property string activityCost: ""        // activity.cost (last 4 weeks)
+    property string periodStartingAt: ""     // activity.period.starting_at
+    property int monthlyResetDay: parseInt(pluginData.monthlyResetDay) || 0
+    property string monthlyTimeUntilReset: ""
 
     // Poll the usage API every updateInterval seconds.
     Timer {
@@ -60,13 +77,39 @@ PluginComponent {
                     try {
                         var obj = JSON.parse(root.buffer)
                         if (obj.limits) {
-                            root.sessionPct = obj.limits.session.usage * 100
-                            root.weeklyPct = obj.limits.weekly.usage * 100
-                            root.sessionModels = obj.limits.session.models || []
-                            root.weeklyModels = obj.limits.weekly.models || []
+                            var lim = obj.limits
+                            // New monthly plan: a "monthly" bucket replaces the
+                            // legacy session/weekly windows.
+                            if (lim.monthly) {
+                                root.planType = "monthly"
+                                root.monthlyPct = lim.monthly.usage * 100
+                                root.monthlyModels = lim.monthly.models || []
+                            } else {
+                                root.planType = "legacy"
+                            }
+                            // Legacy buckets (read defensively if still present).
+                            if (lim.session) {
+                                root.sessionPct = lim.session.usage * 100
+                                root.sessionModels = lim.session.models || []
+                            }
+                            if (lim.weekly) {
+                                root.weeklyPct = lim.weekly.usage * 100
+                                root.weeklyModels = lim.weekly.models || []
+                            }
+                            // Activity: cost of the last 4 weeks (informational),
+                            // plus the period start, used as a heuristic for the
+                            // monthly reset day when monthlyResetDay is unset.
+                            if (obj.activity) {
+                                root.activityCost = obj.activity.cost || ""
+                                if (obj.activity.period) {
+                                    root.periodStartingAt = obj.activity.period.starting_at || ""
+                                }
+                            }
                             root.status = ""
                             root.sessionTimeUntilReset = root.formatReset(root.secondsUntilSessionReset())
                             root.timeUntilReset = root.formatReset(root.secondsUntilWeeklyReset())
+                            var msec = root.secondsUntilMonthlyReset()
+                            root.monthlyTimeUntilReset = msec < 0 ? "" : root.formatReset(msec)
                         }
                     } catch (e) {
                         root.status = "bad json"
@@ -98,18 +141,28 @@ PluginComponent {
 
     function buildTooltipText() {
         var lines = [];
-        lines.push("Session: " + root.sessionPct.toFixed(1) + "%");
-        for (var i = 0; i < root.sessionModels.length; i++) {
-            var m = root.sessionModels[i];
-            lines.push("  " + m.name + " (" + m.request_count + " reqs)");
+        if (root.planType === "monthly") {
+            lines.push("Monthly: " + root.monthlyPct.toFixed(1) + "%");
+            for (var i = 0; i < root.monthlyModels.length; i++) {
+                var m = root.monthlyModels[i];
+                lines.push("  " + m.name + " (" + m.request_count + " reqs)");
+            }
+            if (root.activityCost !== "") lines.push("Activity cost (4wk): $" + parseFloat(root.activityCost).toFixed(2));
+            if (root.monthlyTimeUntilReset !== "") lines.push("Monthly resets in " + root.monthlyTimeUntilReset);
+        } else {
+            lines.push("Session: " + root.sessionPct.toFixed(1) + "%");
+            for (var j = 0; j < root.sessionModels.length; j++) {
+                var sm = root.sessionModels[j];
+                lines.push("  " + sm.name + " (" + sm.request_count + " reqs)");
+            }
+            lines.push("Weekly: " + root.weeklyPct.toFixed(1) + "%");
+            for (var k = 0; k < root.weeklyModels.length; k++) {
+                var wm = root.weeklyModels[k];
+                lines.push("  " + wm.name + " (" + wm.request_count + " reqs)");
+            }
+            lines.push("Session resets in " + root.formatReset(root.secondsUntilSessionReset()));
+            lines.push("Weekly resets in " + root.formatReset(root.secondsUntilWeeklyReset()));
         }
-        lines.push("Weekly: " + root.weeklyPct.toFixed(1) + "%");
-        for (var j = 0; j < root.weeklyModels.length; j++) {
-            var wm = root.weeklyModels[j];
-            lines.push("  " + wm.name + " (" + wm.request_count + " reqs)");
-        }
-        lines.push("Session resets in " + root.formatReset(root.secondsUntilSessionReset()));
-        lines.push("Weekly resets in " + root.formatReset(root.secondsUntilWeeklyReset()));
         return lines.join("\n");
     }
 
@@ -209,6 +262,32 @@ PluginComponent {
         return 604800 - (((epoch - 4 * 86400) % 604800 + 604800) % 604800)
     }
 
+    // Monthly reset countdown. The API doesn't expose the reset date, so the
+    // day-of-month comes from the optional monthlyResetDay setting, falling
+    // back to the day-of-month of activity.period.starting_at (a heuristic —
+    // that field is a rolling "last_4_weeks" window, so it's only correct if
+    // it happens to be billing-anchored). Returns -1 when no day is known.
+    function secondsUntilMonthlyReset() {
+        var day = root.monthlyResetDay
+        if (day <= 0 || day > 31) day = root.derivedResetDay()
+        if (day <= 0 || day > 31) return -1
+        var now = new Date()
+        var reset = new Date(now.getFullYear(), now.getMonth(), day)
+        if (reset.getTime() <= now.getTime()) {
+            reset = new Date(now.getFullYear(), now.getMonth() + 1, day)
+        }
+        return Math.max(0, (reset.getTime() - now.getTime()) / 1000)
+    }
+
+    // Day-of-month of activity.period.starting_at (UTC), used as a fallback
+    // when monthlyResetDay is unset. Returns 0 when unavailable.
+    function derivedResetDay() {
+        if (root.periodStartingAt === "") return 0
+        var d = new Date(root.periodStartingAt)
+        if (isNaN(d.getTime())) return 0
+        return d.getUTCDate()
+    }
+
     function formatReset(sec) {
         var s = Math.max(0, Math.ceil(sec))
         var d = Math.floor(s / 86400)
@@ -242,7 +321,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== ""
+                    visible: root.apiKey !== "" && root.planType === "legacy"
                     text: root.sessionPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -250,7 +329,23 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== ""
+                    visible: root.apiKey !== "" && root.planType === "monthly"
+                    text: root.monthlyPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey !== "" && root.planType === "monthly" && root.monthlyTimeUntilReset !== ""
+                    text: root.monthlyTimeUntilReset
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey !== "" && root.planType === "legacy"
                     text: root.weeklyPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
@@ -258,7 +353,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== "" && root.sessionTimeUntilReset !== "" &&
+                    visible: root.apiKey !== "" && root.planType === "legacy" && root.sessionTimeUntilReset !== "" &&
                              root.sessionTimeUntilReset !== "reset" && root.sessionTimeUntilReset !== "now"
                     text: root.sessionTimeUntilReset
                     font.pixelSize: Theme.fontSizeSmall
@@ -316,7 +411,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== ""
+                    visible: root.apiKey !== "" && root.planType === "legacy"
                     text: root.sessionPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primary
@@ -324,7 +419,23 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== ""
+                    visible: root.apiKey !== "" && root.planType === "monthly"
+                    text: root.monthlyPct.toFixed(1) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primary
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey !== "" && root.planType === "monthly" && root.monthlyTimeUntilReset !== ""
+                    text: root.monthlyTimeUntilReset
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    visible: root.apiKey !== "" && root.planType === "legacy"
                     text: root.weeklyPct.toFixed(1) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceText
@@ -332,7 +443,7 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.apiKey !== "" && root.sessionTimeUntilReset !== "" &&
+                    visible: root.apiKey !== "" && root.planType === "legacy" && root.sessionTimeUntilReset !== "" &&
                              root.sessionTimeUntilReset !== "reset" && root.sessionTimeUntilReset !== "now"
                     text: root.sessionTimeUntilReset
                     font.pixelSize: Theme.fontSizeSmall
