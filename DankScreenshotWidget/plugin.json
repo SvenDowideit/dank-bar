@@ -1,0 +1,12 @@
+{
+  "id": "dankScreenshot",
+  "name": "Dank Screenshot",
+  "description": "Dank bar widget that takes a screenshot and puts the filename then the image into the clipboard stack",
+  "version": "1.0.0",
+  "author": "dank",
+  "icon": "widgets",
+  "type": "widget",
+  "component": "./DankScreenshotWidget.qml",
+  "settings": "./DankScreenshotSettings.qml",
+  "permissions": ["settings_read", "settings_write", "process"]
+}
