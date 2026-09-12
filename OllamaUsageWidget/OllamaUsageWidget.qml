@@ -33,6 +33,11 @@ PluginComponent {
     property string timeUntilReset: ""
     property string sessionTimeUntilReset: ""
 
+    // Peak pricing for the deepseek models: 12:00-18:00 UTC, Monday-Friday.
+    // Tracked live so the pill can show a $$ badge and the tooltip can render
+    // the window in the user's local time.
+    property bool peakPricing: false
+
     // Plan detection: "legacy" (session + weekly buckets) or "monthly"
     // (a single monthly bucket). The new monthly Pro/Max plans replace the
     // old 5h session + 7d weekly windows with a monthly credit pool.
@@ -52,6 +57,17 @@ PluginComponent {
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refresh()
+    }
+
+    // Re-evaluate peak pricing every minute so the badge flips at the exact
+    // UTC boundary without waiting for the next API poll.
+    Timer {
+        id: peakTimer
+        interval: 60000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.peakPricing = root.isPeakPricing()
     }
 
     // One-shot curl for a single fetch.
@@ -139,8 +155,35 @@ PluginComponent {
         tooltipLoader.active = false;
     }
 
+    // Peak pricing applies to the deepseek models between 12:00 and 18:00 UTC,
+    // Monday to Friday. Compare in UTC regardless of the machine's timezone.
+    function isPeakPricing() {
+        var now = new Date()
+        var day = now.getUTCDay()             // 0 = Sunday, 6 = Saturday
+        if (day === 0 || day === 6) return false
+        var hour = now.getUTCHours()
+        return hour >= 12 && hour < 18
+    }
+
+    // Render a UTC time-of-day as the equivalent local "HH:MM" string, using
+    // today's date so the local timezone offset (incl. DST) is reflected.
+    function utcToLocalTime(utcHour) {
+        var d = new Date()
+        d.setUTCHours(utcHour, 0, 0, 0)
+        return Qt.formatTime(d, "HH:mm")
+    }
+
+    // Tooltip line describing the peak window in the user's local time.
+    function peakPricingLine() {
+        var start = root.utcToLocalTime(12)
+        var end = root.utcToLocalTime(18)
+        var prefix = root.peakPricing ? "Peak pricing now ($$)" : "Peak pricing"
+        return prefix + ": " + start + "–" + end + " local, Mon–Fri"
+    }
+
     function buildTooltipText() {
         var lines = [];
+        lines.push(root.peakPricingLine());
         if (root.planType === "monthly") {
             lines.push("Monthly: " + root.monthlyPct.toFixed(1) + "%");
             for (var i = 0; i < root.monthlyModels.length; i++) {
@@ -370,6 +413,15 @@ PluginComponent {
                 }
 
                 StyledText {
+                    visible: root.peakPricing
+                    text: "$$"
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.bold: true
+                    color: Theme.error
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                StyledText {
                     visible: root.status !== "" && root.apiKey !== ""
                     text: "⚠"
                     font.pixelSize: Theme.fontSizeSmall
@@ -448,6 +500,15 @@ PluginComponent {
                     text: root.sessionTimeUntilReset
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    visible: root.peakPricing
+                    text: "$$"
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.bold: true
+                    color: Theme.error
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 

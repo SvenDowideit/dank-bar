@@ -35,6 +35,21 @@ Ollama's `/api/usage` response shape depends on which plan the account is on:
 The widget auto-detects the shape from the response, so the same build keeps
 working for both old and new plans — no config change needed when you switch.
 
+## Peak pricing
+
+Ollama applies **peak pricing** to the deepseek models between **12:00 and
+18:00 UTC, Monday to Friday**. The widget tracks this live (re-checked every
+minute, independent of the API poll interval):
+
+- While peak pricing is active, a bold red **`$$`** badge appears in the bar
+  pill (both horizontal and vertical layouts).
+- The tooltip always includes a line showing the peak window converted to your
+  **local time**, e.g. `Peak pricing now ($$): 14:00–20:00 local, Mon–Fri`, or
+  `Peak pricing: 14:00–20:00 local, Mon–Fri` when off-peak.
+
+The window is fixed in UTC, so the displayed local times shift automatically
+with your timezone and daylight-saving changes.
+
 ## Files
 - `plugin.json` — DMS widget manifest
 - `OllamaUsageWidget.qml` — bar pill (horizontal + vertical)
